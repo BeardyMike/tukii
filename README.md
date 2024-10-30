@@ -1,5 +1,5 @@
 # tukii
- ![image](https://github.com/BeardyMike/tukii/blob/main/tukii.png)
+ ![image](https://github.com/BeardyMike/tukii/blob/main/tukii2.png?raw=true)
  <br>The twokey + dial project - fully written in C++
 
  ## Components
