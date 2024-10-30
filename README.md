@@ -1,6 +1,6 @@
 # tukii
- The twokey + dial project - fully written in C++
  ![image](https://github.com/BeardyMike/tukii/blob/main/tukii.png)
+ <br>The twokey + dial project - fully written in C++
 
  ## Components
  Waveshare RP2040 ZERO <br>
