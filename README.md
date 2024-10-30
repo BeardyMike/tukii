@@ -1,6 +1,8 @@
 # tukii
  The twokey + dial project - fully written in C++
 
+ ![image](https://github.com/BeardyMike/tukii/blob/main/tukii.png?raw=true)
+
  ## Components
  Waveshare RP2040 ZERO <br>
  EC11 Rotary Encoder <br>
