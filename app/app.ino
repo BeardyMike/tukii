@@ -88,6 +88,7 @@ int action;  // 0 = copy, 1 = paste, 2 = cut, 3 = undo, 4 = redo, 5 = selall, 6 
 
 
 
+
 /*//// ____|////| |//////////////////////////////////////////////////////////////////////////////////
 //  | (___   ___| |_ _   _ _ __                                                                    //
 //   \___ \ / _ \ __| | | | '_ \                                                                   //
@@ -111,7 +112,7 @@ void setup() {
 
   // Initialise the serial port
   Serial.begin(115200);
-  delay(1000);
+  delay(100);
   Serial.println("tukiiOS is ready!");
 
   /*-------------------------------------------------------------------------------------------------*/
@@ -217,69 +218,37 @@ void action_press(int action) {
   while (digitalRead(button1Pin) == LOW || digitalRead(button2Pin) == LOW) {
     delay(10);
   }
-  if (action == 0) {
-    Keyboard.press(KEY_LEFT_CTRL);
-    Keyboard.press('c');
-    delay(100);
-    Keyboard.releaseAll();
-  } else if (action == 1) {
-    Keyboard.press(KEY_LEFT_CTRL);
-    Keyboard.press('v');
-    delay(100);
-    Keyboard.releaseAll();
-  } else if (action == 2) {
-    Keyboard.press(KEY_LEFT_CTRL);
-    Keyboard.press('x');
-    delay(100);
-    Keyboard.releaseAll();
-  } else if (action == 3) {
-    Keyboard.press(KEY_LEFT_CTRL);
-    Keyboard.press('z');
-    delay(100);
-    Keyboard.releaseAll();
-  } else if (action == 4) {
-    Keyboard.press(KEY_LEFT_CTRL);
-    Keyboard.press('y');
-    delay(100);
-    Keyboard.releaseAll();
-  } else if (action == 5) {
-    Keyboard.press(KEY_LEFT_CTRL);
-    Keyboard.press('a');
-    delay(100);
-    Keyboard.releaseAll();
-  } else if (action == 6) {
-    Keyboard.press(KEY_LEFT_CTRL);
-    Keyboard.press('s');
-    delay(100);
-    Keyboard.releaseAll();
-  } else if (action == 7) {
-    Keyboard.press(KEY_LEFT_CTRL);
-    Keyboard.press('p');
-    delay(100);
-    Keyboard.releaseAll();
-  } else if (action == 8) {
-    Keyboard.press(KEY_LEFT_CTRL);
-    Keyboard.press('f');
-    delay(100);
-    Keyboard.releaseAll();
-  } else if (action == 9) {
-    Keyboard.press(KEY_LEFT_CTRL);
-    Keyboard.press('h');
-    delay(100);
-    Keyboard.releaseAll();
-  } else if (action == 10) {
-    Keyboard.press(KEY_LEFT_CTRL);
-    Keyboard.press(KEY_LEFT_SHIFT);
-    Keyboard.press(KEY_ESC);
-    delay(100);
-    Keyboard.releaseAll();
-  } else if (action == 11) {
-    Keyboard.press(KEY_LEFT_ALT);
-    Keyboard.press(KEY_F4);
+
+  struct KeyAction {
+    const uint8_t modifiers[3];
+    uint8_t modifierCount;
+    uint8_t key;
+  };
+
+  const KeyAction actions[] = {
+    { { KEY_LEFT_CTRL }, 1, 'c' },                      // Copy
+    { { KEY_LEFT_CTRL }, 1, 'v' },                      // Paste
+    { { KEY_LEFT_CTRL }, 1, 'x' },                      // Cut
+    { { KEY_LEFT_CTRL }, 1, 'z' },                      // Undo
+    { { KEY_LEFT_CTRL }, 1, 'y' },                      // Redo
+    { { KEY_LEFT_CTRL }, 1, 'a' },                      // Select All
+    { { KEY_LEFT_CTRL }, 1, 's' },                      // Save
+    { { KEY_LEFT_CTRL }, 1, 'p' },                      // Print
+    { { KEY_LEFT_CTRL }, 1, 'f' },                      // Find
+    { { KEY_LEFT_CTRL }, 1, 'h' },                      // Replace
+    { { KEY_LEFT_CTRL, KEY_LEFT_SHIFT }, 2, KEY_ESC },  // Task Manager
+    { { KEY_LEFT_ALT }, 1, KEY_F4 }                     // Close
+  };
+
+  if (action >= 0 && action < (sizeof(actions)/sizeof(actions[0]))) {
+    const KeyAction &ka = actions[action];
+    for (uint8_t i = 0; i < ka.modifierCount; i++) {
+      Keyboard.press(ka.modifiers[i]);
+    }
+    Keyboard.press(ka.key);
     delay(100);
     Keyboard.releaseAll();
   }
-  return;
 }
 
 /*-------------------------------------------------------------------------------------------------*/
@@ -300,6 +269,45 @@ void write_buttons_char(int Lkey, int Lval, int Rkey, int Rval) {
   delay(0.01);
   file.close();
   return;
+}
+
+/*-------------------------------------------------------------------------------------------------*/
+
+
+void display_menu(int menuNum, int selected, const String menuItems[], const int cursorX[], const int cursorY[], int numItems) {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(2, 1);
+  if (menuNum == 1) {
+    display.print("Menu 1/2");
+  } else {
+    display.print("Menu 2/2");
+  }
+
+  for (int i = 0; i < numItems; i++) {
+    if (i == selected) {
+      if (i >= 2) {
+        display.fillRect(cursorX[i] - 1, cursorY[i] - 1, 70, 10, WHITE);
+        display.setTextColor(BLACK);
+        display.setTextSize(1);
+      } else {
+        display.fillRect(0, cursorY[i] - 1, 128, 17, WHITE);
+        display.setTextColor(BLACK);
+        display.setTextSize(2);
+      }
+    } else {
+      display.setTextColor(WHITE);
+      if (i >= 2) {
+        display.setTextSize(1);
+      } else {
+        display.setTextSize(2);
+      }
+    }
+    display.setCursor(cursorX[i], cursorY[i]);
+    display.print(menuItems[i]);
+  }
+  display.display();
 }
 
 // ^ - Common Functions
@@ -363,141 +371,50 @@ void main_screen() {
 
 void main_menu() {
   Serial.println("Main Menu 1/2 Loaded");
-  int menu1_postion = 1;
-  int menu1_position_drawn = 1;
-  display.clearDisplay();
-  display.fillRect(0, 14, 128, 17, WHITE);
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(2, 1);
-  display.print("Menu 1/2");
-  display.setTextSize(2);
-  display.setCursor(2, 15);
-  display.setTextColor(BLACK, WHITE);
-  display.print("Characters");
-  display.setCursor(2, 33);
-  display.setTextColor(WHITE);
-  display.print("Actions");
-  display.setCursor(2, 55);
-  display.setTextSize(1);
-  display.print("Next Page >");
-  display.setCursor(103, 55);
-  display.print("Exit");
-  display.display();
+  int menu_number = 1;
+  int menu_position = 0;
+  const int num_menu_items = 4;
+  const String menuItems[] = {"Characters", "Actions", "Next Page >", "Exit"};
+  const int cursorY[] = {15, 33, 55, 55};
+  const int cursorX[] = {2, 2, 2, 103};
+
+  display_menu(menu_number, menu_position, menuItems, cursorX, cursorY, num_menu_items);
+
   while (digitalRead(ROTARY_BUTTON) == LOW) {  // Wait until the rotary button is released
     delay(10);
   }
+
   while (true) {
-    encoder.tick();                      // Check the encoder for movement
-    int newPos = encoder.getPosition();  // Get the direction of the encoder
-    if (newPos > pos) {
-      menu1_postion++;
-      if (menu1_postion > 4) menu1_postion = 1;  // Wrap around to first menu
-    } else if (newPos < pos) {
-      menu1_postion--;
-      if (menu1_postion < 1) menu1_postion = 4;  // Wrap around to last menu
-    }
-    pos = newPos;
-    if (menu1_postion != menu1_position_drawn) {  // Display the current menu option only if it has changed
-      if (menu1_postion == 1) {
-        display.clearDisplay();
-        display.fillRect(0, 14, 128, 17, WHITE);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.setCursor(2, 1);
-        display.print("Menu 1/2");
-        display.setTextSize(2);
-        display.setCursor(2, 15);
-        display.setTextColor(BLACK, WHITE);
-        display.print("Characters");
-        display.setCursor(2, 33);
-        display.setTextColor(WHITE);
-        display.print("Actions");
-        display.setCursor(2, 55);
-        display.setTextSize(1);
-        display.print("Next Page >");
-        display.setCursor(103, 55);
-        display.print("Exit");
-        display.display();
-        menu1_position_drawn = 1;
-      } else if (menu1_postion == 2) {
-        display.clearDisplay();
-        display.fillRect(0, 32, 128, 17, WHITE);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.setCursor(2, 1);
-        display.print("Menu 1/2");
-        display.setTextSize(2);
-        display.setCursor(2, 15);
-        display.print("Characters");
-        display.setCursor(2, 33);
-        display.setTextColor(BLACK, WHITE);
-        display.print("Actions");
-        display.setCursor(2, 55);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.print("Next Page >");
-        display.setCursor(103, 55);
-        display.print("Exit");
-        display.display();
-        menu1_position_drawn = 2;
-      } else if (menu1_postion == 3) {
-        display.clearDisplay();
-        display.fillRect(0, 54, 70, 9, WHITE);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.setCursor(2, 1);
-        display.print("Menu 1/2");
-        display.setTextSize(2);
-        display.setCursor(2, 15);
-        display.print("Characters");
-        display.setCursor(2, 33);
-        display.print("Actions");
-        display.setCursor(2, 55);
-        display.setTextSize(1);
-        display.setTextColor(BLACK, WHITE);
-        display.print("Next Page >");
-        display.setCursor(103, 55);
-        display.setTextColor(WHITE);
-        display.print("Exit");
-        display.display();
-        menu1_position_drawn = 3;
-      } else if (menu1_postion == 4) {
-        display.clearDisplay();
-        display.fillRect(101, 54, 70, 9, WHITE);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.setCursor(2, 1);
-        display.print("Menu 1/2");
-        display.setTextSize(2);
-        display.setCursor(2, 15);
-        display.print("Characters");
-        display.setCursor(2, 33);
-        display.print("Actions");
-        display.setCursor(2, 55);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.print("Next Page >");
-        display.setTextColor(BLACK, WHITE);
-        display.setCursor(103, 55);
-        display.print("Exit");
-        display.display();
-        menu1_position_drawn = 4;
+    encoder.tick();
+    int newPos = encoder.getPosition();
+    if (newPos != pos) {
+      if (newPos > pos) {
+        menu_position = (menu_position + 1) % num_menu_items;
+      } else if (newPos < pos) {
+        menu_position = (menu_position - 1 + num_menu_items) % num_menu_items;
       }
+      pos = newPos;
+      display_menu(menu_number, menu_position, menuItems, cursorX, cursorY, num_menu_items);
     }
+
     if (digitalRead(ROTARY_BUTTON) == LOW) {  // Check rotary button to select the current menu option
-      delay(100);                             // Debounce delay
-      if (menu1_postion == 1) {
-        character_menu();
-      } else if (menu1_postion == 2) {
-        action_menu();
-      } else if (menu1_postion == 3) {
-        main_menu2();
-      } else if (menu1_postion == 4) {
-        while (digitalRead(ROTARY_BUTTON) == LOW) {
-          delay(10);
-        }
-        main_screen();
+      delay(100);  // Debounce delay
+      switch (menu_position) {
+        case 0:
+          character_menu();
+          break;
+        case 1:
+          action_menu();
+          break;
+        case 2:
+          main_menu2();
+          break;
+        case 3:
+          while (digitalRead(ROTARY_BUTTON) == LOW) {
+            delay(10);
+          }
+          main_screen();
+          break;
       }
       break;
     }
@@ -508,254 +425,82 @@ void main_menu() {
 
 void main_menu2() {
   Serial.println("Main Menu 2/2 Loaded");
-  int menu2_postion = 1;
-  int menu2_position_drawn = 1;
-  display.clearDisplay();
-  display.fillRect(0, 14, 128, 17, WHITE);
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(2, 1);
-  display.print("Menu 2/2");
-  display.setTextSize(2);
-  display.setCursor(2, 15);
-  display.setTextColor(BLACK, WHITE);
-  display.print("Games");
-  display.setCursor(2, 33);
-  display.setTextColor(WHITE);
-  display.print("About");
-  display.setCursor(2, 55);
-  display.setTextSize(1);
-  display.print("< Last Page");
-  display.setCursor(103, 55);
-  display.print("Exit");
-  display.display();
+  int menu_number = 2;
+  int menu_position = 0;
+  const int num_menu_items = 4;
+  const String menuItems[] = {"Games", "About", "< Last Page", "Exit"};
+  const int cursorY[] = {15, 33, 55, 55};
+  const int cursorX[] = {2, 2, 2, 103};
+
+  display_menu(menu_number, menu_position, menuItems, cursorX, cursorY, num_menu_items);
+
   while (digitalRead(ROTARY_BUTTON) == LOW) {  // Wait until the rotary button is released
     delay(10);
   }
+
   while (true) {
-    encoder.tick();                      // Check the encoder for movement
-    int newPos = encoder.getPosition();  // Get the direction of the encoder
-    if (newPos > pos) {
-      menu2_postion++;
-      if (menu2_postion > 4) menu2_postion = 1;  // Wrap around to first menu
-    } else if (newPos < pos) {
-      menu2_postion--;
-      if (menu2_postion < 1) menu2_postion = 4;  // Wrap around to last menu
-    }
-    pos = newPos;
-    if (menu2_postion != menu2_position_drawn) {  // Display the current menu option only if it has changed
-      if (menu2_postion == 1) {
-        display.clearDisplay();
-        display.fillRect(0, 14, 128, 17, WHITE);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.setCursor(2, 1);
-        display.print("Menu 2/2");
-        display.setTextSize(2);
-        display.setCursor(2, 15);
-        display.setTextColor(BLACK, WHITE);
-        display.print("Games");
-        display.setCursor(2, 33);
-        display.setTextColor(WHITE);
-        display.print("About");
-        display.setCursor(2, 55);
-        display.setTextSize(1);
-        display.print("< Last Page");
-        display.setCursor(103, 55);
-        display.print("Exit");
-        display.display();
-        menu2_position_drawn = 1;
-      } else if (menu2_postion == 2) {
-        display.clearDisplay();
-        display.fillRect(0, 32, 128, 17, WHITE);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.setCursor(2, 1);
-        display.print("Menu 2/2");
-        display.setTextSize(2);
-        display.setCursor(2, 15);
-        display.print("Games");
-        display.setCursor(2, 33);
-        display.setTextColor(BLACK, WHITE);
-        display.print("About");
-        display.setCursor(2, 55);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.print("< Last Page");
-        display.setCursor(103, 55);
-        display.print("Exit");
-        display.display();
-        menu2_position_drawn = 2;
-      } else if (menu2_postion == 3) {
-        display.clearDisplay();
-        display.fillRect(0, 54, 70, 9, WHITE);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.setCursor(2, 1);
-        display.print("Menu 2/2");
-        display.setTextSize(2);
-        display.setCursor(2, 15);
-        display.print("Games");
-        display.setCursor(2, 33);
-        display.print("About");
-        display.setCursor(2, 55);
-        display.setTextSize(1);
-        display.setTextColor(BLACK, WHITE);
-        display.print("< Last Page");
-        display.setCursor(103, 55);
-        display.setTextColor(WHITE);
-        display.print("Exit");
-        display.display();
-        menu2_position_drawn = 3;
-      } else if (menu2_postion == 4) {
-        display.clearDisplay();
-        display.fillRect(101, 54, 70, 9, WHITE);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.setCursor(2, 1);
-        display.print("Menu 2/2");
-        display.setTextSize(2);
-        display.setCursor(2, 15);
-        display.print("Games");
-        display.setCursor(2, 33);
-        display.print("About");
-        display.setCursor(2, 55);
-        display.setTextSize(1);
-        display.setTextColor(WHITE);
-        display.print("< Last Page");
-        display.setTextColor(BLACK, WHITE);
-        display.setCursor(103, 55);
-        display.print("Exit");
-        display.display();
-        menu2_position_drawn = 4;
+    encoder.tick();
+    int newPos = encoder.getPosition();
+    if (newPos != pos) {
+      if (newPos > pos) {
+        menu_position = (menu_position + 1) % num_menu_items;
+      } else if (newPos < pos) {
+        menu_position = (menu_position - 1 + num_menu_items) % num_menu_items;
       }
+      pos = newPos;
+      display_menu(menu_number, menu_position, menuItems, cursorX, cursorY, num_menu_items);
     }
+
     if (digitalRead(ROTARY_BUTTON) == LOW) {  // Check rotary button to select the current menu option
-      delay(100);                             // Debounce delay
-      if (menu2_postion == 1) {
-        games_menu();
-      } else if (menu2_postion == 2) {
-        about_screen();
-      } else if (menu2_postion == 3) {
-        main_menu();
-      } else if (menu2_postion == 4) {
-        while (digitalRead(ROTARY_BUTTON) == LOW) {
-          delay(10);
-        }
-        main_screen();
+      delay(100);  // Debounce delay
+      switch (menu_position) {
+        case 0:
+          games_menu();
+          break;
+        case 1:
+          about_screen();
+          break;
+        case 2:
+          main_menu();
+          break;
+        case 3:
+          while (digitalRead(ROTARY_BUTTON) == LOW) {
+            delay(10);
+          }
+          main_screen();
+          break;
       }
       break;
     }
   }
 }
-
 /*-------------------------------------------------------------------------------------------------*/
+
 void character_menu() {
   Serial.println("Character Menu Loaded");
+  pos = encoder.getPosition();
   display.clearDisplay();
-  display.fillRect(49, 0, 24, 100, SSD1306_WHITE);
-  // Print characters to screen in a gentle arch
-  display.setTextSize(4);
-  display.setCursor(1, 30);
-  display.setTextColor(SSD1306_WHITE);
-  display.print(characters[ll_index]);
-  display.setTextSize(4);
-  display.setCursor(26, 20);
-  display.setTextColor(SSD1306_WHITE);
-  display.print(characters[l_index]);
-  display.setTextSize(4);
-  display.setCursor(51, 15);
-  display.setTextColor(SSD1306_BLACK);
-  display.print(characters[mid_index]);
-  display.setTextSize(4);
-  display.setCursor(76, 20);
-  display.setTextColor(SSD1306_WHITE);
-  display.print(characters[r_index]);
-  display.setTextSize(4);
-  display.setCursor(101, 30);
-  display.setTextColor(SSD1306_WHITE);
-  display.print(characters[rr_index]);
+  draw_character_menu();
   display.display();
-  while (digitalRead(ROTARY_BUTTON) == LOW) {  // Wait until the rotary button is released
+
+  while (digitalRead(ROTARY_BUTTON) == LOW) {
     delay(10);
   }
+
   while (true) {
-    encoder.tick();                      // Check the encoder for movement
-    int newPos = encoder.getPosition();  // Get the direction of the encoder
-    if (newPos > pos) {
-      ll_index++;
-      l_index++;
-      mid_index++;
-      r_index++;
-      rr_index++;
-      if (ll_index > 61) ll_index = 0;    // Wrap around to first character
-      if (l_index > 61) l_index = 0;      // Wrap around to first character
-      if (mid_index > 61) mid_index = 0;  // Wrap around to first character
-      if (r_index > 61) r_index = 0;      // Wrap around to first character
-      if (rr_index > 61) rr_index = 0;    // Wrap around to first character
-      display.clearDisplay();             // Clear the display
-      display.fillRect(49, 0, 24, 100, SSD1306_WHITE);
-      display.setTextSize(4);
-      display.setCursor(1, 30);
-      display.setTextColor(SSD1306_WHITE);
-      display.print(characters[ll_index]);
-      display.setTextSize(4);
-      display.setCursor(26, 20);
-      display.setTextColor(SSD1306_WHITE);
-      display.print(characters[l_index]);
-      display.setTextSize(4);
-      display.setCursor(51, 15);
-      display.setTextColor(SSD1306_BLACK);
-      display.print(characters[mid_index]);
-      display.setTextSize(4);
-      display.setCursor(76, 20);
-      display.setTextColor(SSD1306_WHITE);
-      display.print(characters[r_index]);
-      display.setTextSize(4);
-      display.setCursor(101, 30);
-      display.setTextColor(SSD1306_WHITE);
-      display.print(characters[rr_index]);
-      display.display();
-    } else if (newPos < pos) {
-      int newdraw = 1;
-      ll_index--;
-      l_index--;
-      mid_index--;
-      r_index--;
-      rr_index--;
-      if (ll_index < 0) ll_index = 61;    // Wrap around to last character
-      if (l_index < 0) l_index = 61;      // Wrap around to last character
-      if (mid_index < 0) mid_index = 61;  // Wrap around to last character
-      if (r_index < 0) r_index = 61;      // Wrap around to last character
-      if (rr_index < 0) rr_index = 61;    // Wrap around to last character
-      display.clearDisplay();             // Clear the display
-      display.fillRect(49, 0, 24, 100, SSD1306_WHITE);
-      display.setTextSize(4);
-      display.setCursor(1, 30);
-      display.setTextColor(SSD1306_WHITE);
-      display.print(characters[ll_index]);
-      display.setTextSize(4);
-      display.setCursor(26, 20);
-      display.setTextColor(SSD1306_WHITE);
-      display.print(characters[l_index]);
-      display.setTextSize(4);
-      display.setCursor(51, 15);
-      display.setTextColor(SSD1306_BLACK);
-      display.print(characters[mid_index]);
-      display.setTextSize(4);
-      display.setCursor(76, 20);
-      display.setTextColor(SSD1306_WHITE);
-      display.print(characters[r_index]);
-      display.setTextSize(4);
-      display.setCursor(101, 30);
-      display.setTextColor(SSD1306_WHITE);
-      display.print(characters[rr_index]);
+    encoder.tick();
+    int newPos = encoder.getPosition();
+    if (newPos != pos) {
+      int delta = newPos - pos;
+      pos = newPos;
+      mid_index = (mid_index + delta + 62) % 62;
+      draw_character_menu();
       display.display();
     }
-    pos = newPos;
-    if (digitalRead(ROTARY_BUTTON) == LOW) {  // Check rotary button to select the current character
-      delay(10);                              // Debounce delay
-      char L_or_R = LR_menu();                // Print the selected character to the keyboard
+
+    if (digitalRead(ROTARY_BUTTON) == LOW) {
+      delay(10);
+      char L_or_R = LR_menu();
       if (L_or_R == 'L') {
         leftKey = mid_index;
         leftVal = 1;
@@ -774,87 +519,93 @@ void character_menu() {
   }
 }
 
+void draw_character_menu() {
+  display.clearDisplay();
+  display.fillRect(49, 0, 24, 100, SSD1306_WHITE);
+
+  int indices[5];
+  indices[0] = (mid_index - 2 + 62) % 62;
+  indices[1] = (mid_index - 1 + 62) % 62;
+  indices[2] = mid_index;
+  indices[3] = (mid_index + 1) % 62;
+  indices[4] = (mid_index + 2) % 62;
+
+  int x_positions[5] = {1, 26, 51, 76, 101};
+  int y_positions[5] = {30, 20, 15, 20, 30};
+  int colors[5] = {SSD1306_WHITE, SSD1306_WHITE, SSD1306_BLACK, SSD1306_WHITE, SSD1306_WHITE};
+
+  display.setTextSize(4);
+  for (int i = 0; i < 5; i++) {
+    display.setCursor(x_positions[i], y_positions[i]);
+    display.setTextColor(colors[i]);
+    display.print(characters[indices[i]]);
+  }
+}
+
 /*-------------------------------------------------------------------------------------------------*/
+
 void action_menu() {
-  int newdraw_action = 0;
   Serial.println("Action Menu Loaded");
   display.clearDisplay();
+  const int leftColumnX = 1;
+  const int rightColumnX = 64;
+  const int lineHeight = 10;
+
   display.setTextSize(1);
-  display.setTextColor(BLACK, WHITE);
-  display.setCursor(1, 1);
-  display.print("copy");
-  display.setCursor(1, 11);
-  display.setTextColor(WHITE);
-  display.print("paste");
-  display.setCursor(1, 21);
-  display.print("cut");
-  display.setCursor(1, 31);
-  display.print("undo");
-  display.setCursor(1, 41);
-  display.print("redo");
-  display.setCursor(1, 51);
-  display.print("selall");
-  // Right side actions
-  display.setCursor(64, 1);
-  display.print("save");
-  display.setCursor(64, 11);
-  display.print("print");
-  display.setCursor(64, 21);
-  display.print("find");
-  display.setCursor(64, 31);
-  display.print("replace");
-  display.setCursor(64, 41);
-  display.print("tskman");
-  display.setCursor(64, 51);
-  display.print("close");
-  // Display the screen
+
+  // Initialize action and pos
+  action = 0;
+  encoder.tick(); // Update encoder state
+  pos = encoder.getPosition();
+
+  // Display actions and highlight the first one
+  for (int i = 0; i < 12; i++) {
+    if (i == action) {
+      display.setTextColor(BLACK, WHITE);
+    } else {
+      display.setTextColor(WHITE);
+    }
+    int x = i < 6 ? leftColumnX : rightColumnX;
+    int y = (i % 6) * lineHeight + 1;
+    display.setCursor(x, y);
+    display.print(action_list[i]);
+  }
+
   display.display();
+
   // Wait until the rotary button is released
   while (digitalRead(ROTARY_BUTTON) == LOW) {
     delay(10);
   }
+
   while (true) {
-    encoder.tick();                      // Check the encoder for movement
-    int newPos = encoder.getPosition();  // Get the direction of the encoder
-    if (newPos > pos) {
-      action++;
-      newdraw_action = 1;
-      if (action > 11) action = 0;  // Wrap around to first action
-    } else if (newPos < pos) {
-      action--;
-      newdraw_action = 1;
-      if (action < 0) action = 11;  // Wrap around to last action
-    }
-    pos = newPos;
-    if (newdraw_action == 1) {
+    encoder.tick();
+    int newPos = encoder.getPosition();
+
+    if (newPos != pos) {
+      int delta = newPos - pos;
+      pos = newPos;
+      action = (action + delta + 12) % 12;
+
+      // Redraw the menu
       display.clearDisplay();
       display.setTextSize(1);
 
-      // Display first column (0 to 5)
-      for (int i = 0; i < 6; i++) {
-        if (i == action % 6 && action < 6) {
-          display.setTextColor(BLACK, WHITE);  // Highlight selected item
-        } else {
-          display.setTextColor(WHITE);  // Regular text color
-        }
-        display.setCursor(1, i * 10 + 1);
-        display.print(action_list[i]);
-      }
-
-      // Display second column (6 to 11)
-      for (int i = 6; i < 12; i++) {
+      for (int i = 0; i < 12; i++) {
         if (i == action) {
-          display.setTextColor(BLACK, WHITE);  // Highlight selected item
+          display.setTextColor(BLACK, WHITE);
         } else {
-          display.setTextColor(WHITE);  // Regular text color
+          display.setTextColor(WHITE);
         }
-        display.setCursor(64, (i - 6) * 10 + 1);
+        int x = i < 6 ? leftColumnX : rightColumnX;
+        int y = (i % 6) * lineHeight + 1;
+        display.setCursor(x, y);
         display.print(action_list[i]);
       }
 
-      display.display();  // Render the updated display content
-      newdraw_action = 0;
+      display.display();
     }
+
     if (digitalRead(ROTARY_BUTTON) == LOW) {
       delay(100);
       char L_or_R = LR_menu();
@@ -884,11 +635,11 @@ char LR_menu() {
   display.clearDisplay();
   display.fillRect(0, 0, 64, 64, SSD1306_WHITE);
   display.fillRect(64, 0, 64, 64, SSD1306_BLACK);
-  display.setCursor(10, 15);
+  display.setCursor(20, 14);
   display.setTextSize(5);
   display.setTextColor(SSD1306_BLACK);
   display.print("L");
-  display.setCursor(74, 15);
+  display.setCursor(88, 14);
   display.setTextColor(SSD1306_WHITE);
   display.print("R");
   display.display();
@@ -937,17 +688,16 @@ void games_menu() {
 }
 
 /*-------------------------------------------------------------------------------------------------*/
+
 void about_screen() {
   Serial.println("About Screen Loaded");
   display.clearDisplay();
-  
-  // Display "tukii" in large font
+
   display.setTextSize(3);
   display.setTextColor(WHITE);
-  display.setCursor(10, 10);
+  display.setCursor(15, 10);
   display.print("tukii");
   
-  // Display "Made by BeardyMike" underneath in smaller fontchange this to show tukii in large font, with Made by BeardyMike underneath.
   display.setTextSize(1);
   display.setCursor(10, 40);
   display.print("Made by BeardyMike");
