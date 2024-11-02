@@ -737,21 +737,101 @@ void about_screen() {
 //////////////////////| |//////////////////////////////////////////////////////////////////////////*/
 void loop() {
 
-  // if left button pressed, send leftKey to keyboard
+  // If left button pressed, check if it's being held down and encoder is turned
   if (digitalRead(button1Pin) == LOW) {
-    if (leftVal == 1) {
-      press_button(0);
+    int initialPos = encoder.getPosition();  // Record the initial position
+    bool hasRotated = false;
+
+    // Keep looping while the button is held down
+    while (digitalRead(button1Pin) == LOW) {
+      encoder.tick();
+      int currentPos = encoder.getPosition();
+      int delta = currentPos - initialPos;
+
+      if (delta != 0) {
+        hasRotated = true;
+        initialPos = currentPos;
+
+        if (leftVal == 1) {
+          // Adjust indices for character selection
+          ll_index = (ll_index + delta + 62) % 62;
+          l_index = (l_index + delta + 62) % 62;
+          mid_index = (mid_index + delta + 62) % 62;
+          r_index = (r_index + delta + 62) % 62;
+          rr_index = (rr_index + delta + 62) % 62;
+          leftKey = mid_index;
+        } else if (leftVal == 0) {
+          // Increment or decrement through the actions
+          leftKey = (leftKey + delta + 12) % 12;  // Assuming there are 12 actions
+        }
+
+        // Redraw the screen
+        main_screen();
+      }
+
+      delay(10);  // Small delay
+    }
+
+    // After the button is released
+    if (!hasRotated) {
+      // If the encoder was not rotated, perform the normal action
+      if (leftVal == 1) {
+        press_button(0);
+      } else {
+        action_press(leftKey);
+      }
     } else {
-      action_press(leftKey);
+      // Save the new leftKey
+      write_buttons_char(leftKey, leftVal, rightKey, rightVal);
     }
     delay(10);
   }
-  // if right button pressed, send rightKey to keyboard
+  // If right button pressed, check if it's being held down and encoder is turned
   if (digitalRead(button2Pin) == LOW) {
-    if (rightVal == 1) {
-      press_button(1);
+    int initialPos = encoder.getPosition();  // Record the initial position
+    bool hasRotated = false;
+
+    // Keep looping while the button is held down
+    while (digitalRead(button2Pin) == LOW) {
+      encoder.tick();
+      int currentPos = encoder.getPosition();
+      int delta = currentPos - initialPos;
+
+      if (delta != 0) {
+        hasRotated = true;
+        initialPos = currentPos;
+
+        if (rightVal == 1) {
+          // Adjust indices for character selection
+          ll_index = (ll_index + delta + 62) % 62;
+          l_index = (l_index + delta + 62) % 62;
+          mid_index = (mid_index + delta + 62) % 62;
+          r_index = (r_index + delta + 62) % 62;
+          rr_index = (rr_index + delta + 62) % 62;
+          rightKey = mid_index;
+        } else if (rightVal == 0) {
+          // Increment or decrement through the actions
+          rightKey = (rightKey + delta + 12) % 12;  // Assuming there are 12 actions
+        }
+
+        // Redraw the screen
+        main_screen();
+      }
+
+      delay(10);  // Small delay
+    }
+
+    // After the button is released
+    if (!hasRotated) {
+      // If the encoder was not rotated, perform the normal action
+      if (rightVal == 1) {
+        press_button(1);
+      } else {
+        action_press(rightKey);
+      }
     } else {
-      action_press(rightKey);
+      // Save the new rightKey
+      write_buttons_char(leftKey, leftVal, rightKey, rightVal);
     }
     delay(10);
   }
