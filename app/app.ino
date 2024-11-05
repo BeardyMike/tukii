@@ -383,7 +383,7 @@ void main_menu() {
   while (digitalRead(ROTARY_BUTTON) == LOW) {  // Wait until the rotary button is released
     delay(10);
   }
-  delay(500); // Debounce delay to prevent the dial rotations being registered errantly.
+  delay(250); // Debounce delay to prevent the dial rotations being registered errantly.
   while (true) {
     encoder.tick();
     int newPos = encoder.getPosition();
