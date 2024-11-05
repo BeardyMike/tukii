@@ -1,7 +1,17 @@
 # tukii
- ![image](https://github.com/BeardyMike/tukii/blob/main/tukii2.png?raw=true)
- <br>The twokey + dial project - fully written in C++
+ ![image](https://github.com/BeardyMike/tukii/blob/main/case%20&%20schematic/case/side.png?raw=true)
+ ### a silly project to make a two button keyboard, blown way past the brief with unneeded features, schematics, 3d print files, and detailed 3d renders.
 
+ ## Why?
+ Great Question! 
+ I started this project by making a programmable key, the OneKey, as a way to put my programming learning into something tangible. The tukii spawned from it hellish corpse, 
+ and my friends and family have this sickness to continue unimpeaded. 
+
+ Starting in Circuit Python, the tukii was feature rich but sluggish and un responsive. Switching to a complete rewrite was the most obvious and time intensive solution I 
+ could find.
+
+ The tukii will grow and improve. It is inevitable. There is nothing you can do. It has already started.
+ 
  ## Components
  Waveshare RP2040 ZERO <br>
  EC11 Rotary Encoder <br>
