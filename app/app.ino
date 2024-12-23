@@ -11,7 +11,6 @@
 #include <RotaryEncoder.h>     // github.com/mathertel/RotaryEncoder
 #include <LittleFS.h>
 #include <TinyUSB_Mouse_and_Keyboard.h>
-
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
@@ -19,7 +18,7 @@
 /*-------------------------------------------------------------------------------------------------*/
 
 // Pin definitions for buttons
-#define button1Pin 28  // Left Button
+#define button1Pin 28  // Left ButtonAAE94
 #define button2Pin 26  // Right Button
 
 /*-------------------------------------------------------------------------------------------------*/
@@ -77,6 +76,16 @@ int rightKey;
 int rightVal;
 int dial_still_pressed;
 int action;  // 0 = copy, 1 = paste, 2 = cut, 3 = undo, 4 = redo, 5 = selall, 6 = save, 7 = print, 8 = find, 9 = replace, 10 = tskman, 11 = close
+
+
+/*-------------------------------------------------------------------------------------------------*/
+
+// Define the arkanoid variables
+int paddleX = 54;  // Paddle starting position
+int ballX = 64, ballY = 32;  // Ball starting position
+int ballSpeedX = 1, ballSpeedY = 1;  // Ball speed
+bool gameRunning = false;
+
 
 // text from patorjk.com/software/taag/#p=display&f=Big&t=BeardyMike
 // ^ - Init
@@ -196,6 +205,257 @@ void setup() {
 // |_|   \__,_|_| |_|\___|\__|_|\___/|_| |_|___/                                                   //
 ///////////////////////////////////////////////////////////////////////////////////////////////////*/
 // Common Functions
+void Serial_Instructor()
+{
+  if (Serial.available() > 0) {
+    String command = Serial.readStringUntil('\n');
+    if (command.startsWith("TK_") && command.endsWith("_TK")) {
+      command = command.substring(3, command.length() - 3);  // Remove TK_ and _TK
+
+      if (command == "main_screen") {
+        main_screen();
+      } else if (command == "main_menu") {
+        main_menu();
+      } else if (command == "main_menu2") {
+        main_menu2();
+      } else if (command == "character_menu") {
+        character_menu();
+      } else if (command == "action_menu") {
+        action_menu();
+      } else if (command == "games_menu") {
+        games_menu();
+      } else if (command == "about_screen") {
+        about_screen();
+      } else {
+        Serial.println("Unknown command: " + command);
+      }
+    }
+  }
+}
+
+class Arkanoid_target {
+public:
+  int x, y, width, height;
+  int health;
+
+  Arkanoid_target(int x, int y, int width, int height) 
+    : x(x), y(y), width(width), height(height), health(2) {}
+
+  void render(Adafruit_SSD1306 &display) {
+    if (health == 2) {
+      display.fillRect(x, y, width, height, WHITE);  // Solid rectangle
+    } else if (health == 1) {
+      display.drawRect(x, y, width, height, WHITE);  // Hollow rectangle
+    }
+  }
+
+  void hit() {
+    if (health > 0) {
+      health--;
+    }
+  }
+
+  bool isDestroyed() {
+    return health == 0;
+  }
+};
+
+void drawPaddle() {
+  display.fillRect(paddleX, 60, 20, 2, WHITE);  // Reduced paddle height
+}
+
+void drawBall() {
+  display.drawPixel(ballX, ballY, WHITE);  // Single pixel ball instead of rectangle
+}
+
+void updateBall() {
+  // Update ball position
+  ballX += ballSpeedX;
+  ballY += ballSpeedY;
+
+  // Simplified boundary checks
+  static int topHitCount = 0;
+  if (ballX <= 0 || ballX >= SCREEN_WIDTH-1) ballSpeedX = -ballSpeedX;
+  if (ballY <= 0) {
+    ballSpeedY = -ballSpeedY;
+    topHitCount++;
+    if (topHitCount >= 5 && abs(ballSpeedY) < 3) {
+      ballSpeedY = (ballSpeedY > 0) ? ballSpeedY + 1 : ballSpeedY - 1;
+      topHitCount = 0;  // Reset the counter
+    }
+  }
+
+  // Check for paddle collision and adjust ball speed
+  if (ballY >= 58 && ballY <= 62 && ballX >= paddleX && ballX <= paddleX + 20) {
+    ballSpeedY = -ballSpeedY;
+
+    int paddleHitPos = ballX - paddleX;
+    if (paddleHitPos < 4) {
+      // Ball hits the outer left edge of the paddle
+      if (ballSpeedX > 0) {
+        ballSpeedX = -ballSpeedX;
+      } else {
+        ballSpeedX = max(ballSpeedX - 1, -3);
+      }
+    } else if (paddleHitPos > 6) {
+      // Ball hits the outer right edge of the paddle
+      if (ballSpeedX < 0) {
+        ballSpeedX = -ballSpeedX;
+      } else {
+        ballSpeedX = min(ballSpeedX + 1, 3);
+      }
+    } else if (paddleHitPos >= 9 && paddleHitPos <= 11) {
+      // Ball hits the center 10% of the paddle
+      if (ballSpeedX > 0) {
+        ballSpeedX = max(ballSpeedX - 1, 1);
+      } else {
+        ballSpeedX = min(ballSpeedX + 1, -1);
+      }
+    }
+  }
+
+  // Game over check
+  if (ballY >= SCREEN_HEIGHT-1) gameRunning = false;
+}
+
+void Arkanoid_game() {
+  // Initialize game state
+  paddleX = 54;
+  ballX = random(0, SCREEN_WIDTH);
+  ballY = 55; 
+  ballSpeedX = (random(0, 2) == 0) ? 1 : -1;
+  ballSpeedY = -1;
+  gameRunning = true;
+  // Create targets
+  const int numTargets = 12;
+  Arkanoid_target targets[numTargets] = {
+    Arkanoid_target(5, 3, 15, 5),
+    Arkanoid_target(25, 3, 15, 5),
+    Arkanoid_target(45, 3, 15, 5),
+    Arkanoid_target(65, 3, 15, 5),
+    Arkanoid_target(85, 3, 15, 5),
+    Arkanoid_target(105, 3, 15, 5),
+    Arkanoid_target(5, 13, 15, 5),
+    Arkanoid_target(25, 13, 15, 5),
+    Arkanoid_target(45, 13, 15, 5),
+    Arkanoid_target(65, 13, 15, 5),
+    Arkanoid_target(85, 13, 15, 5),
+    Arkanoid_target(105, 13, 15, 5)
+  };
+
+  bool allDestroyed = false;
+
+  // Game loop
+  while (gameRunning) {
+    display.clearDisplay();
+
+    // Optimized paddle movement
+    if (digitalRead(button1Pin) == LOW) {
+      paddleX = max(0, paddleX - 3);  // Increased speed, using max instead of constrain
+    }
+    if (digitalRead(button2Pin) == LOW) {
+      paddleX = min(108, paddleX + 3);  // Increased speed, using min instead of constrain
+    }
+
+    updateBall();
+
+    // Check for collisions with targets
+    for (int i = 0; i < numTargets; i++) {
+      if (!targets[i].isDestroyed() && ballX >= targets[i].x && ballX <= targets[i].x + targets[i].width &&
+          ballY >= targets[i].y && ballY <= targets[i].y + targets[i].height) {
+        targets[i].hit();
+        ballSpeedY = -ballSpeedY;
+      }
+    }
+
+    // Draw targets
+    for (int i = 0; i < numTargets; i++) {
+      targets[i].render(display);
+    }
+
+    drawPaddle();
+    drawBall();
+    display.display();
+
+    // Check if all targets are destroyed
+    bool allDestroyed = true;
+    for (int i = 0; i < numTargets; i++) {
+      if (!targets[i].isDestroyed()) {
+        allDestroyed = false;
+        break;
+      }
+    }
+
+    if (allDestroyed) {
+      gameRunning = false;
+    }
+
+    // Quick exit check
+    if (digitalRead(ROTARY_BUTTON) == LOW) {
+      while (digitalRead(ROTARY_BUTTON) == LOW);
+      return main_screen();
+    }
+  }
+
+  // Game complete screen
+  if (allDestroyed) {
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(10, 25);
+    display.print("Well Done");
+    display.display();
+    delay(1000);  // Reduced delay
+  } else {
+    // Quick game over screen
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(10, 25);
+    display.print("Game Over");
+    display.display();
+    delay(500);  // Reduced delay
+  }
+  main_screen();
+
+  // Game loop
+  while (gameRunning) {
+    display.clearDisplay();
+
+    // Optimized paddle movement with speed increase
+    static unsigned long lastButtonPressTime = 0;
+    static int paddleSpeed = 1;
+
+    if (digitalRead(button1Pin) == LOW) {
+      unsigned long currentTime = millis();
+      if (currentTime - lastButtonPressTime > 400) {  // Increase speed every 500ms
+      paddleSpeed = min(paddleSpeed + 1, 3);  // Max speed is 3
+      lastButtonPressTime = currentTime;
+      }
+      paddleX = max(0, paddleX - paddleSpeed);
+    } else if (digitalRead(button2Pin) == LOW) {
+      unsigned long currentTime = millis();
+      if (currentTime - lastButtonPressTime > 400) {  // Increase speed every 500ms
+      paddleSpeed = min(paddleSpeed + 1, 3);  // Max speed is 3
+      lastButtonPressTime = currentTime;
+      }
+      paddleX = min(108, paddleX + paddleSpeed);
+    } else {
+      paddleSpeed = 1;  // Reset speed when button is released
+    }
+
+    updateBall();
+    drawPaddle();
+    drawBall();
+    display.display();
+
+    // Quick exit check
+    if (digitalRead(ROTARY_BUTTON) == LOW) {
+      while (digitalRead(ROTARY_BUTTON) == LOW);
+      return main_screen();
+    }
+  }
+}
 
 void press_button(int val) {
   if (val == 0) {
@@ -663,28 +923,31 @@ void games_menu() {
   }
   
   Serial.println("Games Menu Loaded");
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(10, 0);
-  display.print("Games Menu");
-  display.setCursor(10, 10);
-  display.print("Coming Soon!");
-  display.setCursor(10, 40);
-  display.print("Press any button");
-  display.setCursor(10, 50);
-  display.print("to return");
-  display.display();
+  // display.clearDisplay();
+  // display.setTextSize(1);
+  // display.setTextColor(WHITE);
+  // display.setCursor(10, 0);
+  // display.print("Games Menu");
+  // display.setCursor(10, 10);
+  // display.print("Coming Soon!");
+  // display.setCursor(10, 40);
+  // display.print("Press any button");
+  // display.setCursor(10, 50);
+  // display.print("to return");
+  // display.display();
 
-  while (true) {
-    if (digitalRead(button1Pin) == LOW || digitalRead(button2Pin) == LOW || digitalRead(ROTARY_BUTTON) == LOW) {
-      while (digitalRead(button1Pin) == LOW || digitalRead(button2Pin) == LOW || digitalRead(ROTARY_BUTTON) == LOW) {
-        delay(10);  // Wait until all buttons are released
-      }
-      main_screen();
-      break;
-    }
-  }
+  // while (true) {
+  //   if (digitalRead(button1Pin) == LOW || digitalRead(button2Pin) == LOW || digitalRead(ROTARY_BUTTON) == LOW) {
+  //     while (digitalRead(button1Pin) == LOW || digitalRead(button2Pin) == LOW || digitalRead(ROTARY_BUTTON) == LOW) {
+  //       delay(10);  // Wait until all buttons are released
+  //     }
+  //     main_screen();
+  //     break;
+  //   }
+  // }
+
+  Arkanoid_game();
+  
 }
 
 /*-------------------------------------------------------------------------------------------------*/
@@ -693,13 +956,13 @@ void about_screen() {
   Serial.println("About Screen Loaded");
   display.clearDisplay();
 
-  display.setTextSize(3);
+  display.setTextSize(4);
   display.setTextColor(WHITE);
-  display.setCursor(15, 10);
+  display.setCursor(5, 10);
   display.print("tukii");
   
   display.setTextSize(1);
-  display.setCursor(10, 40);
+  display.setCursor(10, 50);
   display.print("Made by BeardyMike");
   
   // Display the screen
@@ -736,114 +999,71 @@ void about_screen() {
 //  |______\___/ \___/|  __/                                                                       //
 //////////////////////| |//////////////////////////////////////////////////////////////////////////*/
 void loop() {
+  Serial_Instructor();
+  encoder.tick();
+  int initialPos = encoder.getPosition();
+  bool hasRotated = false;
 
-  // If left button pressed, check if it's being held down and encoder is turned
-  if (digitalRead(button1Pin) == LOW) {
-    int initialPos = encoder.getPosition();  // Record the initial position
-    bool hasRotated = false;
+  // Helper function to handle button press and rotation
+  auto handleButtonPress = [&](int buttonPin, int &key, int &val, int buttonIndex) {
+    if (digitalRead(buttonPin) == LOW) {
+      while (digitalRead(buttonPin) == LOW) {
+        encoder.tick();
+        int currentPos = encoder.getPosition();
+        int delta = currentPos - initialPos;
 
-    // Keep looping while the button is held down
-    while (digitalRead(button1Pin) == LOW) {
-      encoder.tick();
-      int currentPos = encoder.getPosition();
-      int delta = currentPos - initialPos;
+        if (delta != 0) {
+          hasRotated = true;
+          initialPos = currentPos;
 
-      if (delta != 0) {
-        hasRotated = true;
-        initialPos = currentPos;
+          if (val == 1) {
+            key = (key + delta + 62) % 62;
+          } else if (val == 0) {
+            key = (key + delta + 12) % 12;
+          }
 
-        if (leftVal == 1) {
-          // Adjust indices for character selection
-          ll_index = (ll_index + delta + 62) % 62;
-          l_index = (l_index + delta + 62) % 62;
-          mid_index = (mid_index + delta + 62) % 62;
-          r_index = (r_index + delta + 62) % 62;
-          rr_index = (rr_index + delta + 62) % 62;
-          leftKey = mid_index;
-        } else if (leftVal == 0) {
-          // Increment or decrement through the actions
-          leftKey = (leftKey + delta + 12) % 12;  // Assuming there are 12 actions
+          main_screen();
         }
-
-        // Redraw the screen
-        main_screen();
       }
 
-      delay(10);  // Small delay
-    }
-
-    // After the button is released
-    if (!hasRotated) {
-      // If the encoder was not rotated, perform the normal action
-      if (leftVal == 1) {
-        press_button(0);
-      } else {
-        action_press(leftKey);
-      }
-    } else {
-      // Save the new leftKey
-      write_buttons_char(leftKey, leftVal, rightKey, rightVal);
-    }
-    delay(10);
-  }
-  // If right button pressed, check if it's being held down and encoder is turned
-  if (digitalRead(button2Pin) == LOW) {
-    int initialPos = encoder.getPosition();  // Record the initial position
-    bool hasRotated = false;
-
-    // Keep looping while the button is held down
-    while (digitalRead(button2Pin) == LOW) {
-      encoder.tick();
-      int currentPos = encoder.getPosition();
-      int delta = currentPos - initialPos;
-
-      if (delta != 0) {
-        hasRotated = true;
-        initialPos = currentPos;
-
-        if (rightVal == 1) {
-          // Adjust indices for character selection
-          ll_index = (ll_index + delta + 62) % 62;
-          l_index = (l_index + delta + 62) % 62;
-          mid_index = (mid_index + delta + 62) % 62;
-          r_index = (r_index + delta + 62) % 62;
-          rr_index = (rr_index + delta + 62) % 62;
-          rightKey = mid_index;
-        } else if (rightVal == 0) {
-          // Increment or decrement through the actions
-          rightKey = (rightKey + delta + 12) % 12;  // Assuming there are 12 actions
+      if (!hasRotated) {
+        if (val == 1) {
+          press_button(buttonIndex);
+        } else {
+          action_press(key);
         }
-
-        // Redraw the screen
-        main_screen();
-      }
-
-      delay(10);  // Small delay
-    }
-
-    // After the button is released
-    if (!hasRotated) {
-      // If the encoder was not rotated, perform the normal action
-      if (rightVal == 1) {
-        press_button(1);
       } else {
-        action_press(rightKey);
+        write_buttons_char(leftKey, leftVal, rightKey, rightVal);
       }
-    } else {
-      // Save the new rightKey
-      write_buttons_char(leftKey, leftVal, rightKey, rightVal);
+      delay(1);
     }
-    delay(10);
-  }
-  // if rotary button pressed, open the main_menu
+  };
+
+  // Handle left and right button presses
+  handleButtonPress(button1Pin, leftKey, leftVal, 0);
+  handleButtonPress(button2Pin, rightKey, rightVal, 1);
+
+  // Handle rotary button press
   if (digitalRead(ROTARY_BUTTON) == LOW) {
-    delay(100);  // Debounce delay
+    delay(100);
     if (dial_still_pressed == 0) {
       main_menu();
     }
     dial_still_pressed = 1;
   }
   dial_still_pressed = 0;
+
+  // Handle encoder scroll
+  if (digitalRead(button1Pin) == HIGH && digitalRead(button2Pin) == HIGH && digitalRead(ROTARY_BUTTON) == HIGH) {
+    encoder.tick();
+    int newPos = encoder.getPosition();
+    int delta = newPos - pos;
+
+    if (delta != 0) {
+      Mouse.move(0, 0, delta * 1);
+      pos = newPos;
+    }
+  }
 }
 //
 // ^ Loop
