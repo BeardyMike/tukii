@@ -1,19 +1,24 @@
-##############################################################################
+##################################################################################
+#                                                                                #
+#   This is the companion app for the tukii:DE. This app reads data from the     #
+#   tukii and performs the actions, communication happens over the serial bus.   #
+#   The tukii uses TinyUSB. Configuring the tukii from the app will send the     #
+#   new config via TinyUSB, and also to the webserver, so the user config can    #
+#   be saved and applied as needed. Profiles can also be made and applied using  #
+#   the app. Profiles are loaded to the tukii over TinyUSB.   
 # 
-#   This is the companion app for the tukii:DE. This app reads data from the 
-#   tukii and performs the actions, communication happens over the serial bus. 
-#   The tukii uses TinyUSB. Configuring the tukii from the app will send the 
-#   new config via TinyUSB, and also to the webserver, so the user config can 
-#   be saved and applied as needed. Profiles can also be made and applied using 
-#   the app. Profiles are loaded to the tukii over TinyUSB.
-# 
-#   @Author: BeardyMike
-# 
-##############################################################################
+#   The app connects to the BeardyMike API server to get the latest weather and  #
+#   crypto data, which will be sent to the tukii and shown on the screensaver.   #
+#   The user needs to enter their API key to enable this feature, as the server  #
+#   is restricted, and the user needs to be authenitcated.                       #
+#                                                                                #
+#   @Author: BeardyMike                                                          #
+#                                                                                #
+##################################################################################
 
 
 
-##############################################################################
+##################################################################################
 # import modules
 
 # pip install customtkinter
@@ -68,7 +73,7 @@ def compare(event, temp):
     return event == temp
 
 # Function to print to the console when a button is hovered over
-# add      .bind("<Enter>", lambda eff: on_hover(eff="None", event="Button Name"), add='+')     to something to call this function
+# add -->    .bind("<Enter>", lambda eff: on_hover(eff="None", event="Button Name"), add='+')     <-- to something to call this function
 def on_hover(eff="None", event=""):
     global temp
     if compare(event, temp) == True:
@@ -102,7 +107,7 @@ def ini_write(section, key, value):
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
-main_frame_colour = ("#EBEBEB","#1A1A1A")
+main_frame_colour = ("#EBEBEB","#1A1A1A") # https://www.google.com/search?q=%23ebebeb & https://www.google.com/search?q=%231a1a1a
 
 ##############################################################################
 
@@ -197,8 +202,8 @@ class App(customtkinter.CTk):
         #self.sidebar_button_4.bind("<Enter>", lambda eff: on_hover(eff="None", event="Page4 Button"), add='+')
 
         # Set font
-        customtkinter.FontManager.load_font("ArduinoFont.ttf")
-        arduino_font = customtkinter.CTkFont(family="ArduinoFont", size=128)
+        customtkinter.FontManager.load_font("Ardy.ttf")
+        arduino_font = customtkinter.CTkFont(family="Ardy", size=128)
 
         # Create page1_frame with widgets
         class Page1Frame(customtkinter.CTkFrame):
@@ -210,18 +215,18 @@ class App(customtkinter.CTk):
                 self.config.read(data_ini)
                 self.config.sections()
 
-                # Create a canvas to draw the text with a transparent background
-                self.home_image = customtkinter.CTkImage(light_image=Image.open(tukii_image), size=(412, 212))
-                self.home_label = customtkinter.CTkLabel(self, image=self.home_image, text="")
 
-                self.home_label.grid(row=0, column=0, padx=15, pady=25)
+                # Create a frame to hold the labels with a transparent background
+                self.frame = customtkinter.CTkFrame(self, width=128, height=64, fg_color="transparent")
+                self.frame.grid(row=1, column=0, padx=15, pady=25)
 
-                # Create labels for T and K overlays
-                self.t_label = customtkinter.CTkLabel(self, text="T", font=("ArduinoFont", 72), text_color="black")
-                self.t_label.grid(row=0, column=0, rowspan=2, columnspan=2)
+                # Create the labels
+                self.t_label = customtkinter.CTkLabel(self.frame, height=150, width=150, text="selall", font=("Ardy", 64), text_color="black", fg_color="white")
+                self.k_label = customtkinter.CTkLabel(self.frame, height=150, width=150, text="replce", font=("Ardy", 64), text_color="white", fg_color="black")
 
-                self.k_label = customtkinter.CTkLabel(self, text="K", font=("ArduinoFont", 72), text_color="white") 
-                self.k_label.grid(row=0, column=0, pady=50)
+                # Add the labels to the frame side by side
+                self.t_label.grid(row=0, column=0)
+                self.k_label.grid(row=0, column=1)
 
         # Create page2_frame with widgets, it has lots of buttons and labels
         class Page2Frame(customtkinter.CTkFrame):
