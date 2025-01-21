@@ -4,7 +4,7 @@
 //   _| |_| | | | | |_| | (_| | | \__ \ (_| | |_| | (_) | | | |                                    //
 //  |_____|_| |_|_|\__|_|\__,_|_|_|___/\__,_|\__|_|\___/|_| |_|                                    //
 ///////////////////////////////////////////////////////////////////////////////////////////////////*/
-// 
+// last edit - 21/01/25
 #include <Wire.h>              // github.com/esp8266/Arduino/tree/master/libraries/Wire
 #include <Adafruit_GFX.h>      // github.com/adafruit/Adafruit-GFX-Library
 #include <Adafruit_SSD1306.h>  // github.com/adafruit/Adafruit-SD1306
@@ -231,6 +231,8 @@ void Serial_Instructor()
         games_menu();
       } else if (command == "about_screen") {
         about_screen();
+      } else if (command == "screen_saver") {
+        screen_saver();
       } else {
         Serial.println("Unknown command: " + command);
       }
@@ -590,6 +592,19 @@ void display_menu(int menuNum, int selected, const String menuItems[], const int
 //   ____) | (__| | |  __/  __/ | | \__ \                                                          //
 //  |_____/ \___|_|  \___|\___|_| |_|___/                                                          //
 ///////////////////////////////////////////////////////////////////////////////////////////////////*/
+void screen_saver(){
+    const unsigned char wallet_icon [] PROGMEM = { // wallet icon, 16x13px using https://javl.github.io/image2cpp/
+	  0x3f, 0xfc, 0x7f, 0xff, 0xe0, 0x01, 0xff, 0xf9, 0x80, 0x05, 0x81, 0x85, 0x82, 0x05, 0x87, 0x05, 
+	  0x82, 0x05, 0x82, 0x05, 0x87, 0x87, 0x80, 0x04, 0x7f, 0xf8};
+  display.clearDisplay();
+  display.drawBitmap(5, 5, wallet_icon, 16, 13, WHITE);
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(24,8);
+  display.print("130,401.00");
+  display.display(); // Display the screen
+  return;
+}
 
 void main_screen() {
   display.clearDisplay();  // Clear the display
@@ -928,28 +943,6 @@ void games_menu() {
   }
   
   Serial.println("Games Menu Loaded");
-  // display.clearDisplay();
-  // display.setTextSize(1);
-  // display.setTextColor(WHITE);
-  // display.setCursor(10, 0);
-  // display.print("Games Menu");
-  // display.setCursor(10, 10);
-  // display.print("Coming Soon!");
-  // display.setCursor(10, 40);
-  // display.print("Press any button");
-  // display.setCursor(10, 50);
-  // display.print("to return");
-  // display.display();
-
-  // while (true) {
-  //   if (digitalRead(button1Pin) == LOW || digitalRead(button2Pin) == LOW || digitalRead(ROTARY_BUTTON) == LOW) {
-  //     while (digitalRead(button1Pin) == LOW || digitalRead(button2Pin) == LOW || digitalRead(ROTARY_BUTTON) == LOW) {
-  //       delay(10);  // Wait until all buttons are released
-  //     }
-  //     main_screen();
-  //     break;
-  //   }
-  // }
 
   Arkanoid_game();
   
