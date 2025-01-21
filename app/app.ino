@@ -104,6 +104,7 @@ bool gameRunning = false;
 //   ____) |  __/ |_| |_| | |_) |                                                                  //
 //  |_____/ \___|\__|\__,_| .__/                                                                   //
 //////////////////////////| |//////////////////////////////////////////////////////////////////////*/
+
 void setup() {
 
   // Initialise the Keyboard and Mouse
@@ -187,6 +188,10 @@ void setup() {
   /*-------------------------------------------------------------------------------------------------*/
 
   main_screen();
+}
+
+void setup1() {
+
 }
 //
 // ^ Setup
@@ -645,7 +650,7 @@ void main_menu() {
   }
   delay(250); // Debounce delay to prevent the dial rotations being registered errantly.
   while (true) {
-    encoder.tick();
+    
     int newPos = encoder.getPosition();
     if (newPos != pos) {
       if (newPos > pos) {
@@ -699,7 +704,7 @@ void main_menu2() {
   }
 
   while (true) {
-    encoder.tick();
+    
     int newPos = encoder.getPosition();
     if (newPos != pos) {
       if (newPos > pos) {
@@ -748,7 +753,7 @@ void character_menu() {
   }
 
   while (true) {
-    encoder.tick();
+    
     int newPos = encoder.getPosition();
     if (newPos != pos) {
       int delta = newPos - pos;
@@ -815,7 +820,7 @@ void action_menu() {
 
   // Initialize action and pos
   action = 0;
-  encoder.tick(); // Update encoder state
+   // Update encoder state
   pos = encoder.getPosition();
 
   // Display actions and highlight the first one
@@ -839,7 +844,7 @@ void action_menu() {
   }
 
   while (true) {
-    encoder.tick();
+    
     int newPos = encoder.getPosition();
 
     if (newPos != pos) {
@@ -998,31 +1003,34 @@ void about_screen() {
 //  | |___| (_) | (_) | |_) |                                                                      //
 //  |______\___/ \___/|  __/                                                                       //
 //////////////////////| |//////////////////////////////////////////////////////////////////////////*/
+
+
 void loop() {
   Serial_Instructor();
-  encoder.tick();
-  int initialPos = encoder.getPosition();
-  bool hasRotated = false;
-
+  
   // Helper function to handle button press and rotation
   auto handleButtonPress = [&](int buttonPin, int &key, int &val, int buttonIndex) {
     if (digitalRead(buttonPin) == LOW) {
+      int initialPos = encoder.getPosition();
+      bool hasRotated = false;
       while (digitalRead(buttonPin) == LOW) {
-        encoder.tick();
+        delay(25);
         int currentPos = encoder.getPosition();
         int delta = currentPos - initialPos;
 
         if (delta != 0) {
           hasRotated = true;
-          initialPos = currentPos;
-
           if (val == 1) {
             key = (key + delta + 62) % 62;
+            
+            main_screen();
           } else if (val == 0) {
             key = (key + delta + 12) % 12;
+            
+            main_screen();
           }
-
-          main_screen();
+          
+          initialPos = currentPos;
         }
       }
 
@@ -1035,7 +1043,7 @@ void loop() {
       } else {
         write_buttons_char(leftKey, leftVal, rightKey, rightVal);
       }
-      delay(1);
+      
     }
   };
 
@@ -1055,7 +1063,7 @@ void loop() {
 
   // Handle encoder scroll
   if (digitalRead(button1Pin) == HIGH && digitalRead(button2Pin) == HIGH && digitalRead(ROTARY_BUTTON) == HIGH) {
-    encoder.tick();
+    
     int newPos = encoder.getPosition();
     int delta = newPos - pos;
 
@@ -1064,6 +1072,9 @@ void loop() {
       pos = newPos;
     }
   }
+}
+void loop1(){
+    encoder.tick();
 }
 //
 // ^ Loop
