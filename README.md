@@ -5,7 +5,7 @@
  ## Why?
  Great Question! 
  I started this project by making a programmable key, the OneKey, as a way to put my programming learning into something tangible. The tukii spawned from it hellish corpse, 
- and my friends and family have this sickness to continue unimpeaded. 
+ and my friends and family have allowed this sickness to continue unimpeaded. 
 
  Starting in Circuit Python, the tukii was feature rich but sluggish and un responsive. Switching to a complete rewrite was the most obvious and time intensive solution I 
  could find.
